@@ -3,8 +3,10 @@
 #
 # sampP: samples adjacency matrix from P 
 # make_omni: takes list of adjacency matrix and makes Omnibus matrix
+# make_centered_omni: takes list of adjacency matrix and makes Centered Omnibus matrix
 # ase: Adjacency Spectral Embedding
 # ise: Indefinite Spectral Embedding
+# get_Xhat_list: Transform Lhat into list of X matrices
 #------------------------------------------------------------------------------------------------
 
 #sampling functions
@@ -33,6 +35,19 @@ make_omni <- function(mats){
   Reduce("+", lapply(1:m, function(x) kronecker(H(x,m), mats[[x]])))
 }
 
+make_centered_omni <- function(mats){
+  #H(x) = (1x^T + x1^T)/2 - 1/m J_{mm}
+  H <- function(g,m){
+    ones <- rep(1, m)
+    e <- diag(m)[,g]
+    .5 * (tcrossprod(ones,e) + tcrossprod(e,ones)) - 1/m * matrix(1, m, m)
+  }
+  
+  #sum up each kronecker 
+  m <- length(mats)
+  Reduce("+", lapply(1:m, function(x) kronecker(H(x,m), mats[[x]])))
+}
+
 #source get Elbows function
 script <- getURL("https://raw.githubusercontent.com/youngser/gmmase/master/R/getElbows.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
@@ -48,7 +63,7 @@ ase <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   }
   if(is.na(d)) {
     #Want to get the PD part of A
-    eig <- eigs(as(A, "dgeMatrix"), d.max, which = 'LA')
+    eig <- eigs(as(A, "dgeMatrix"), d.max, which = 'LR')
     vals <- sort(x =  eig$values[which(eig$values > 0)], decreasing = TRUE) 
     d <- getElbows(vals, plot = F)[elbow]
     selected.eigs <- which(eig$values >= vals[d])
@@ -57,7 +72,7 @@ ase <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
     X <- V %*% D
     return(X)
   } else {
-    eig <- eigs(as(A, "dgeMatrix"), k = d, which = 'LA')
+    eig <- eigs(as(A, "dgeMatrix"), k = d, which = 'LR')
     X <- eig$vectors %*% diag(sqrt(abs(eig$values)), nrow = d)
     return(X) 
   }
@@ -88,5 +103,16 @@ ise <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   return(list(X=X, D=D))
 }
 
-
+#Get Xhat matrices
+get_Xhat_list <- function(Lhat, m){
+  #fetch m 
+  n <- nrow(Lhat) / m 
+  
+  #make X list
+  Xhat_list <- list()
+  for(g in 1:m) Xhat_list[[g]] <- Lhat[(n*(g-1) + 1):(n*g), ]
+  
+  #return list
+  return(Xhat_list)
+}
   

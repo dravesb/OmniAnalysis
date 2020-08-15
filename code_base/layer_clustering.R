@@ -6,14 +6,14 @@
 #------------------------------------------------------------------------------------------------
 
 #Dissimalarity matrix construction
-dissim_mat <- function(A_list, plot_matrix = FALSE, option = 1){
+dissim_mat <- function(A_list, d = NA, plot_matrix = FALSE, option = 1, ...){
   #make omnibus matrix
   Atil <- make_omni(A_list)
   m <- length(A_list)
   n <- nrow(A_list[[1]])
   
   #embedd
-  L_hat <- ase(Atil)
+  L_hat <- ise(Atil, d, ...)$X
   
   #set up D matrix
   D <- matrix(0, ncol = m, nrow = m)
@@ -40,12 +40,18 @@ dissim_mat <- function(A_list, plot_matrix = FALSE, option = 1){
 }
 
 #clustering of layers via clustering the Dissimilarity matrix
-cluster_layers <- function(D, plot = F, k = 2, option = 1){
+cluster_layers <- function(D, plot = F, k = 2, option = 1, ...){
   if(option == 1){
     hc <- hclust(as.dist(D))
     
     #want to do this in an unsupervised fashion
     groups <- cutree(hc, k)
+    
+    if(plot){
+      p <- ggdendrogram(hc, rotate = TRUE, theme_dendro = FALSE)
+      
+    } 
+    
     return(groups)
   }
 }

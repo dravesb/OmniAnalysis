@@ -33,7 +33,7 @@ Sigma_D_hat <- function(L_hat){
   
   #set S2_Delta_hat and Omnibar
   S2_Delta_hat <- crossprod(L_hat)/(n*m)
-  Omnibar <- 0.5*(L_hat[1:n,] + L_hat[(n+1):(2*n),])
+  Omnibar <- as.matrix(0.5*(L_hat[1:n,] + L_hat[(n+1):(2*n),]), nrow = n, ncol = d)
   
   #set up variance list 
   var.here <- list()
@@ -57,7 +57,7 @@ W_hat_stat <- function(L_hat, return_p_val = FALSE, correction = 0){
     S <- eigen_decomp$values
     
     #threshold eigenvalues
-    S.thres <- diag(sapply(S, function(x) max(c(0,x))))
+    S.thres <- diag(x = sapply(S, function(x) max(c(0,x))), nrow = ncol(M), ncol = ncol(M))
     
     #return
     return(tcrossprod(U %*% S.thres, U))
@@ -69,7 +69,7 @@ W_hat_stat <- function(L_hat, return_p_val = FALSE, correction = 0){
   d <- ncol(L_hat)
   
   #get D_hat
-  D_hat <- L_hat[1:n, ] - L_hat[(n+1):(2*n), ]
+  D_hat <- as.matrix(L_hat[1:n, ] - L_hat[(n+1):(2*n), ], nrow = n, ncol = d)
   
   #fetch vertex level variance
   var.here <- Sigma_D_hat(L_hat)

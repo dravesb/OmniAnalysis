@@ -6,7 +6,7 @@
 #------------------------------------------------------------------------------------------------
 
 require(pacman)
-pacman::p_load(rARPACK, RCurl, MASS, Matrix, grDevices)
+pacman::p_load(rARPACK, RCurl, MASS, Matrix, grDevices, ggplot2, dplyr, reshape2)
 source('/Users/benjamindraves/Desktop/OmniAnalysis/code_base/basic_functions.R')
 source('/Users/benjamindraves/Desktop/OmniAnalysis/code_base/hypothesis_testing.R')
 source('/Users/benjamindraves/Desktop/OmniAnalysis/code_base/layer_clustering.R')
