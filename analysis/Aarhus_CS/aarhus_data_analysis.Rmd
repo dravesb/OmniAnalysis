@@ -64,7 +64,10 @@ layer_names <- as.vector(sapply(aarhus_mplex$layerNames, function(x) paste0(toup
 
 
 ## Exploratory Data Analysis
-```{r}
+
+We plot each adjacency matrix and the corresponding network observation. 
+
+```{r echo = FALSE, fig.align='center'}
 colors <- c('purple','blue','red', 'green', 'black')
 
 #plot adjacencies in a 3 x 2 Layout
@@ -83,7 +86,8 @@ layout <- rbind(c(1, 1, 2, 2, 3, 3), c(NA, 4, 4, 5, 5, NA))
 grid.arrange(p1, p2, p3, p4, p5, layout_matrix = layout)
 ```
 
-```{r}
+
+```{r echo=FALSE, fig.align='center'}
 #Create igraph objects
 g1 <- graph_from_adjacency_matrix(A_list[[1]], mode = 'undirected')
 g2 <- graph_from_adjacency_matrix(A_list[[2]], mode = 'undirected')
@@ -93,7 +97,7 @@ g5 <- graph_from_adjacency_matrix(A_list[[5]], mode = 'undirected')
 
 #Plot graphs
 layout(rbind(c(1, 1, 2, 2, 3, 3), c(0, 4, 4, 5, 5, 0)))
-layout(matrix(1:5, nrow = 1))
+#layout(matrix(1:5, nrow = 1))
 par(mar = rep(1, 4))
 
 set.seed(1985)
@@ -115,36 +119,69 @@ plot(g5, vertex.label = NA, vertex.size = 6, layout = lay,
 
 ### Determining Embedding Dimension
 
-```{r}
+```{r, fig.dim=c(3,3), fig.align='center'}
 #make Omnibus matrix
 Atil <- make_omni(A_list_norm)
 
 #skree plot 
 eigen_Atil <- eigen(Atil)
 evals <- eigen_Atil$values 
-plot(evals, ylab = 'Eigenvalues', cex = 0.3)
 
-#determine d - get elbows
-non_zero_evals <- sort(x =  abs(evals), decreasing = TRUE)
-elbows <- getElbows(non_zero_evals, n = 3, main = 'Abs. Eigenvalues')
-
-#set d 
+#determine d
+non_zero_evals <- sort(abs(evals[which(abs(evals) > 1e-10)]), decreasing = TRUE)
+elbows <- getElbows(non_zero_evals, n = 3)
 d <- elbows[1]
+
+#find p and q
+tmp <- unname(table(sign(evals[order(abs(evals), decreasing = TRUE)])[1:d]))
+p <- tmp[1]; q <- tmp[2]
+```
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=45)}
+# Compare d to individual network ranks
+d_mat <- matrix(NA, ncol = 2, nrow = length(A_list_norm))
+colnames(d_mat) <- c('p', 'q')
+for(i in 1:length(A_list_norm)){
+  #skree plot 
+  evals <- eigen(A_list_norm[[i]])$values 
+  
+  #determine d
+  non_zero_evals <- sort(abs(evals[which(abs(evals) > 1e-10)]), decreasing = TRUE)
+  elbows <- getElbows(non_zero_evals, n = 3, plot = FALSE)
+  d <- elbows[1]
+
+  #find p and q
+  d_mat[i,] <- unname(table(sign(evals[order(abs(evals), decreasing = TRUE)])[1:d]))
+}
+
+#make kabel table 
+d_mat <- rbind(c(p, q), d_mat)
+rownames(d_mat) <- c('Omnibus', layer_names)
+kable(t(d_mat), caption = 'Comparing each layer embedding dimensions and the Omnibus Embedding dimension.')
+
 ```
 
 
-### Network Clustering
 
-```{r}
+
+### Network Clustering
+Our testing is only set up for positive definite testing - so this still need to think about this a bit. 
+
+
+```{r, fig.align = 'center'}
 #Get Dissim Matrices 
-D1 <- dissim_mat(A_list, d = d, option = 1)
-D2 <- dissim_mat(A_list, d = d, option = 2)
+D1 <- dissim_mat(A_list_norm, d = d, option = 1)
+D2 <- dissim_mat(A_list_norm, d = d, option = 2)
+
+#set row and column names
+rownames(D1) <- colnames(D1) <- layer_names
+rownames(D2) <- colnames(D2) <- layer_names
 
 #get clustering results
 hc1 <- hclust(as.dist(D1)); hc2 <- hclust(as.dist(D2)) 
 groups1 <- cutree(hc1, 2); groups2 <- cutree(hc2, 2)
 
-#plot matrices
+#plot dissm matrices
 heat1 <- ggplot(melt(D1), aes(x = Var2, y = Var1))+
   geom_raster(aes(fill = value/ max(value)))+
   scale_fill_gradient(low='white', high='black') +
@@ -159,26 +196,25 @@ heat2 <- ggplot(melt(D2), aes(x = Var2, y = Var1))+
   theme_bw() + theme(legend.position = 'none', 
                      axis.text.x=element_text(size=9, angle=45, vjust=0.3),
                      axis.text.y=element_text(size=9))
+
 grid.arrange(heat1, heat2, nrow = 1)
+```
 
 
+
+
+```{r, fig.align = 'center'}
 #visualzie results
 dendro1 <- ggdendrogram(hc1, rotate = TRUE, theme_dendro = FALSE) + 
-  labs(title = 'Mahalanobis Distance') + 
+  labs(title = 'Mahalanobis Distance', x = '', y = '') + 
   theme_bw()
 
 dendro2 <- ggdendrogram(hc2, rotate = TRUE, theme_dendro = FALSE) + 
-  labs(title = 'Frobenius Distance') + 
+  labs(title = 'Frobenius Distance', x = '', y = '') + 
   theme_bw()
-
-
+grid.arrange(dendro1, dendro2, nrow = 1)
 ```
 
 
 
 ### Network ANOVA
-
-
-
-
-
