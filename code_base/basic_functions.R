@@ -1,27 +1,36 @@
 #------------------------------------------------------------------------------------------------
 #             Basic Functions
-#
-# sampP: samples adjacency matrix from P 
-# make_omni: takes list of adjacency matrix and makes Omnibus matrix
-# make_centered_omni: takes list of adjacency matrix and makes Centered Omnibus matrix
-# ase: Adjacency Spectral Embedding
-# ise: Indefinite Spectral Embedding
-# get_Xhat_list: Transform Lhat into list of X matrices
 #------------------------------------------------------------------------------------------------
 
-#sampling functions
-sampP <- function(P) {
+
+#' Sample from Symmetric Bernoulli Matrix
+#' 
+#' Samples a symmetric Bernoulli matrix with indendepent entries elementwise where 
+#' the success probabilities are the entries of P.
+#'
+#' @param P the symmetric probability matrix containing success probabilities
+#' 
+#' @return A the sampled symmetric bernoulli matrix 
+#' @author Jes\'us Arroyo <jesus.arroyo@jhu.edu>
+sampP <- function(P){
   #set up matrix
-  n = ncol(P)
-  A = matrix(0, n, n)
+  n <- ncol(P)
+  A <- matrix(0, n, n)
   
   #sample from A 
   A[upper.tri(A)] <- 1*(runif(sum(upper.tri(P))) < P[upper.tri(P)])
-  A = A + t(A)
+  A <- A + t(A)
   return(A)
 }
 
-#Make Omni function
+#' @describeIn Make Omnibus Matrix
+#' 
+#' Creates the full nm x nm omnibus matrix
+#'
+#' @param mats a list of m, n x n matrices
+#' 
+#' @return Atilde the omnibus matrix of matrices in mats
+#' @author Benjamin Draves <dravesb@bu.edu>
 make_omni <- function(mats){
   #H(x) = (1x^T + x1^T)/2
   H <- function(g,m){
@@ -35,6 +44,14 @@ make_omni <- function(mats){
   Reduce("+", lapply(1:m, function(x) kronecker(H(x,m), mats[[x]])))
 }
 
+#' @describeIn Make Centered Omnibus Matrix
+#' 
+#' Creates the full nm x nm omnibus matrix where each n x n block is centered by the sample average in mats
+#'
+#' @param mats a list of m, n x n matrices
+#' 
+#' @return The omnibus matrix of matrices in mats centered by the sample mean of matrices in mats
+#' @author Benjamin Draves <dravesb@bu.edu>
 make_centered_omni <- function(mats){
   #H(x) = (1x^T + x1^T)/2 - 1/m J_{mm}
   H <- function(g,m){
@@ -49,10 +66,19 @@ make_centered_omni <- function(mats){
 }
 
 #source get Elbows function
-script <- getURL("https://raw.githubusercontent.com/youngser/gmmase/master/R/getElbows.R", ssl.verifypeer = FALSE)
+script <- RCurl::getURL("https://raw.githubusercontent.com/youngser/gmmase/master/R/getElbows.R", ssl.verifypeer = FALSE)
 eval(parse(text = script))
 
-#ASE Embedding
+#' @describeIn Function to perform graph adjacency spectral embedding (ASE)
+#' 
+#' @param A adjacency matrix
+#' @param d number of joint embedding dimensions. If NA, dimension is chosen automatically
+#' @param d.max maximum number of embedding dimensions to try when d is not provided. Default is sqrt(ncol(A)).
+#' @param diag.augment whether to do diagonal augmentation (TRUE/FALSE)
+#' @param elbow number of elbow selected in Zhu & Ghodsi method. Default is 1.
+#' @return A matrix with n rows and d columns containing the estimated latent positions
+#' 
+#' @author Jes\'us Arroyo <jesus.arroyo@jhu.edu>
 ase <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   require(rARPACK)
   # Diagonal augmentation
@@ -78,7 +104,16 @@ ase <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   }
 }
 
-#ISE Embedding
+#' @describeIn Function to perform the indefinite spectral embedding (ISE) by choosing largest eigenvalues in magnitude.
+#' 
+#' @param A adjacency matrix
+#' @param d number of embedding dimensions chosen from both sides of the spectral. If NA, dimension is chosen automatically
+#' @param d.max maximum number of embedding dimensions to try when d is not provided. Default is sqrt(ncol(A)).
+#' @param diag.augment whether to do diagonal augmentation (TRUE/FALSE)
+#' @param elbow number of elbow selected in Zhu & Ghodsi method. Default is 1.
+#' @return A matrix with n rows and d columns containing the estimated latent positions from the
+#' 
+#' @author Benjamin Draves <dravesb@bu.edu>
 ise <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   require(rARPACK) 
   if(is.na(d)) {
@@ -103,7 +138,16 @@ ise <- function(A, d = NA, d.max = ncol(A), diag.augment = T, elbow = 1) {
   return(list(X=X, D=D))
 }
 
-#Get Xhat matrices
+#' @describeIn Fetches graph-specific latent position estimates from Omnibus embedding
+#' 
+#' Subsets the nm x d omnibus embedding into a m - list of n x d 
+#' matrices corresponding to graph specific latent position estimates
+#'
+#' @param Lhat the omnibus embedding matrix
+#' @param m the numbe of graphs
+#' 
+#' @return a list of length m with each entry a n x d matrix corresponding to latent position estimates of each graph 
+#' @author Benjamin Draves <dravesb@bu.edu>
 get_Xhat_list <- function(Lhat, m){
   #fetch m 
   n <- nrow(Lhat) / m 

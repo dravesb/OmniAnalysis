@@ -129,7 +129,7 @@ evals <- eigen_Atil$values
 
 #determine d
 non_zero_evals <- sort(abs(evals[which(abs(evals) > 1e-10)]), decreasing = TRUE)
-elbows <- getElbows(non_zero_evals, n = 3)
+elbows <- getElbows(non_zero_evals, n = 3, plot = FALSE)
 d <- elbows[1]
 
 #find p and q
@@ -177,27 +177,29 @@ D2 <- dissim_mat(A_list_norm, d = d, option = 2)
 rownames(D1) <- colnames(D1) <- layer_names
 rownames(D2) <- colnames(D2) <- layer_names
 
+#set row and column names
+diag(D1) <- diag(D2) <- NA
+
 #get clustering results
 hc1 <- hclust(as.dist(D1)); hc2 <- hclust(as.dist(D2)) 
 groups1 <- cutree(hc1, 2); groups2 <- cutree(hc2, 2)
 
 #plot dissm matrices
 heat1 <- ggplot(melt(D1), aes(x = Var2, y = Var1))+
-  geom_raster(aes(fill = value/ max(value)))+
-  scale_fill_gradient(low='white', high='black') +
+  geom_raster(aes(fill = value/ max(value, na.rm = TRUE)))+
+  scale_fill_gradient(low='blue', high='red', name = 'Dissim. [0,1]', na.value = 'white') +
   labs(x='', y='', title='Mahalanobis Distance') +
-  theme_bw() + theme(legend.position = 'none', 
-                     axis.text.x=element_text(size=9, angle=45, vjust=0.3),
+  theme_bw() + theme(axis.text.x=element_text(size=9, angle=45, vjust=0.3),
                      axis.text.y=element_text(size=9))
 heat2 <- ggplot(melt(D2), aes(x = Var2, y = Var1))+
-  geom_raster(aes(fill = value / max(value)))+
-  scale_fill_gradient(low='white', high='black') +
+  geom_raster(aes(fill = value / max(value, na.rm = TRUE)))+
+  scale_fill_gradient(low='blue', high='red', name = 'Dissim. [0,1]', na.value = 'white') +
+  labs(x='', y='', title='Mahalanobis Distance') +
   labs(x='', y='', title='Frobenius Distance') +
-  theme_bw() + theme(legend.position = 'none', 
-                     axis.text.x=element_text(size=9, angle=45, vjust=0.3),
+  theme_bw() + theme(axis.text.x=element_text(size=9, angle=45, vjust=0.3),
                      axis.text.y=element_text(size=9))
 
-grid.arrange(heat1, heat2, nrow = 1)
+grid.arrange(heat1, heat2, nrow = 2)
 ```
 
 
